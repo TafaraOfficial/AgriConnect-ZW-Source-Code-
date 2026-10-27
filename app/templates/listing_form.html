@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block title %}{% if action == 'edit' %}Edit Listing{% else %}New Listing{% endif %} | AgriConnect ZW{% endblock %}
+
+{% block content %}
+<section class="panel form-panel-large">
+  <div class="section-header">
+    <h1>{% if action == 'edit' %}Edit listing{% else %}Create listing{% endif %}</h1>
+  </div>
+
+  <form method="POST" class="form-grid">
+    <div class="field-group">
+      <label for="title">Title</label>
+      <input id="title" name="title" type="text" value="{{ listing.title if listing else '' }}" required />
+    </div>
+
+    <div class="field-group">
+      <label for="crop">Crop or produce</label>
+      <input id="crop" name="crop" type="text" value="{{ listing.crop if listing else '' }}" required />
+    </div>
+
+    <div class="field-group">
+      <label for="category">Category</label>
+      <select id="category" name="category" required>
+        {% set categories = ['cereals', 'vegetables', 'fruits', 'legumes', 'livestock', 'inputs'] %}
+        {% for option in categories %}
+          <option value="{{ option }}" {% if listing and listing.category == option %}selected{% endif %}>{{ option|title }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="field-group">
+      <label for="quantity">Quantity</label>
+      <input id="quantity" name="quantity" type="number" min="1" value="{{ listing.quantity if listing else 1 }}" required />
+    </div>
+
+    <div class="field-group">
+      <label for="unit">Unit</label>
+      <input id="unit" name="unit" type="text" value="{{ listing.unit if listing else 'kg' }}" required />
+    </div>
+
+    <div class="field-group">
+      <label for="price">Price (US$)</label>
+      <input id="price" name="price" type="number" min="0" step="0.01" value="{{ listing.price if listing else 0 }}" required />
+    </div>
+
+    <div class="field-group full-width">
+      <label for="location">Location</label>
+      <input id="location" name="location" type="text" value="{{ listing.location if listing else '' }}" placeholder="Harare, Gweru, etc." required />
+    </div>
+
+    <div class="field-group full-width">
+      <label for="description">Description</label>
+      <textarea id="description" name="description" rows="5" placeholder="Describe the produce or input stock">{{ listing.description if listing else '' }}</textarea>
+    </div>
+
+    <div class="form-actions full-width">
+      <button type="submit" class="primary-button">Save listing</button>
+      <a href="{{ url_for('main.marketplace') }}" class="secondary-button">Cancel</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

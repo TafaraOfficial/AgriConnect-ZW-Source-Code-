@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}Register | AgriConnect ZW{% endblock %}
+
+{% block content %}
+<section class="auth-card">
+  <h1>Create your account</h1>
+  <p class="subtitle">Join AgriConnect ZW as a buyer, farmer, or supplier.</p>
+
+  <form method="POST" class="form-panel">
+    <div class="field-group">
+      <label for="name">Full name</label>
+      <input id="name" name="name" type="text" placeholder="Your full name" required />
+    </div>
+
+    <div class="field-group">
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" placeholder="you@example.com" required />
+    </div>
+
+    <div class="field-group">
+      <label for="phone">Phone number</label>
+      <input id="phone" name="phone" type="tel" placeholder="+263 77 000 0000" />
+    </div>
+
+    <div class="field-group">
+      <label for="role">Role</label>
+      <select id="role" name="role">
+        <option value="buyer">Buyer</option>
+        <option value="farmer">Farmer</option>
+        <option value="supplier">Supplier</option>
+      </select>
+    </div>
+
+    <div class="field-group">
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" placeholder="At least 8 characters" required />
+    </div>
+
+    <button type="submit" class="primary-button">Register</button>
+  </form>
+
+  <p class="switch-link">Already have an account? <a href="{{ url_for('main.login') }}">Login here</a></p>
+</section>
+{% endblock %}

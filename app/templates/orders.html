@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block title %}Orders | AgriConnect ZW{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <div>
+    <p class="eyebrow">Orders</p>
+    <h1>{% if order_type == 'incoming' %}Incoming requests{% else %}My orders{% endif %}</h1>
+  </div>
+</section>
+
+<div class="panel">
+  {% if orders %}
+    <div class="order-table">
+      {% for order in orders %}
+        <article class="order-item">
+          <div class="order-head">
+            <div>
+              <h3>{{ order.title }}</h3>
+              <p>Quantity: {{ order.quantity }} • Price: US$ {{ '%.2f'|format(order.price) }}</p>
+            </div>
+            <span class="status-badge status-{{ order.status }}">{{ order.status|title }}</span>
+          </div>
+
+          {% if order.note %}
+            <p class="order-note">Note: {{ order.note }}</p>
+          {% endif %}
+
+          {% if order_type == 'incoming' %}
+            <form method="POST" action="{{ url_for('main.update_order_status', order_id=order.id) }}" class="inline-owner-actions">
+              <select name="status">
+                <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>Pending</option>
+                <option value="accepted" {% if order.status == 'accepted' %}selected{% endif %}>Accept</option>
+                <option value="rejected" {% if order.status == 'rejected' %}selected{% endif %}>Reject</option>
+              </select>
+              <button type="submit" class="primary-button small-button">Update</button>
+            </form>
+          {% endif %}
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="empty-state">No orders yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

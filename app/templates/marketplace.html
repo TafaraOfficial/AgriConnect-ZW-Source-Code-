@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% block title %}Marketplace | AgriConnect ZW{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <div>
+    <p class="eyebrow">Marketplace</p>
+    <h1>Farm products and supplies</h1>
+  </div>
+  {% if current_user and current_user.role in ['farmer', 'supplier', 'admin'] %}
+    <a href="{{ url_for('main.new_listing') }}" class="primary-button">Add listing</a>
+  {% endif %}
+</section>
+
+<form method="GET" class="filter-bar">
+  <div class="field-group search-field">
+    <label for="search">Search</label>
+    <input id="search" name="search" type="text" value="{{ search }}" placeholder="Search crops, products, or location" />
+  </div>
+
+  <div class="field-group select-field">
+    <label for="category">Category</label>
+    <select id="category" name="category">
+      <option value="all" {% if category == 'all' %}selected{% endif %}>All categories</option>
+      {% for option in categories %}
+        <option value="{{ option }}" {% if category == option %}selected{% endif %}>{{ option|title }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <button type="submit" class="secondary-button">Filter</button>
+</form>
+
+<div class="market-grid">
+  {% if listings %}
+    {% for listing in listings %}
+      <article class="card listing-card">
+        <div class="card-header">
+          <div>
+            <p class="product-tag">{{ listing.category|title }}</p>
+            <h3>{{ listing.title }}</h3>
+          </div>
+          <span class="price-tag">US$ {{ '%.2f'|format(listing.price) }}</span>
+        </div>
+
+        <p class="crop-name">{{ listing.crop }}</p>
+        <p>{{ listing.description or 'Fresh produce available for sale.' }}</p>
+
+        <div class="product-meta">
+          <span>{{ listing.quantity }} {{ listing.unit }}</span>
+          <span>{{ listing.location }}</span>
+        </div>
+
+        <div class="seller-meta">
+          <span>Seller: {{ listing.seller_name }}</span>
+        </div>
+
+        {% if current_user and current_user.id != listing.seller_id %}
+          <form method="POST" action="{{ url_for('main.place_order', listing_id=listing.id) }}" class="order-form">
+            <div class="inline-fields">
+              <input type="number" name="quantity" min="1" max="{{ listing.quantity }}" value="1" required />
+              <button type="submit" class="primary-button">Request order</button>
+            </div>
+            <textarea name="note" rows="2" placeholder="Optional order notes"></textarea>
+          </form>
+        {% elif not current_user %}
+          <a href="{{ url_for('main.login') }}" class="primary-button block-link">Login to order</a>
+        {% endif %}
+
+        {% if current_user and current_user.role in ['farmer', 'supplier', 'admin'] and current_user.id == listing.seller_id %}
+          <div class="owner-actions">
+            <a href="{{ url_for('main.edit_listing', listing_id=listing.id) }}" class="secondary-button small-button">Edit</a>
+            <form method="POST" action="{{ url_for('main.delete_listing', listing_id=listing.id) }}" onsubmit="return confirm('Delete this listing?');">
+              <button type="submit" class="danger-button small-button">Delete</button>
+            </form>
+          </div>
+        {% endif %}
+      </article>
+    {% endfor %}
+  {% else %}
+    <div class="empty-state panel">
+      <h3>No listings match your search.</h3>
+      <p>Try another keyword or category.</p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

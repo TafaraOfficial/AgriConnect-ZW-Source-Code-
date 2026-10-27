@@ -1,7 +1,7 @@
-
-AgriConnect ZW Full Project Skeleton
+# AgriConnect ZW Full Project Skeleton
 
 Core Features:
+
 - Farmer/Buyer/Supplier accounts
 - Marketplace
 - Orders

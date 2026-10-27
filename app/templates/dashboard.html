@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard | AgriConnect ZW{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <div>
+    <p class="eyebrow">Dashboard</p>
+    <h1>Welcome, {{ user.name }}</h1>
+  </div>
+  <span class="badge role-badge">{{ user.role|title }}</span>
+</section>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <span class="stat-label">Active listings</span>
+    <strong>{{ total_listings }}</strong>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">Your listings</span>
+    <strong>{{ my_listings }}</strong>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">Pending orders</span>
+    <strong>{{ pending_orders }}</strong>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="section-header">
+    <h2>Recent marketplace listings</h2>
+    <a href="{{ url_for('main.marketplace') }}" class="text-link">View all</a>
+  </div>
+
+  {% if recent_listings %}
+    <div class="listing-list">
+      {% for listing in recent_listings %}
+        <article class="listing-item">
+          <div>
+            <h3>{{ listing.title }}</h3>
+            <p>{{ listing.crop }} • {{ listing.category|title }} • {{ listing.location }}</p>
+          </div>
+          <div class="listing-meta">
+            <span>{{ listing.quantity }} {{ listing.unit }}</span>
+            <strong>US$ {{ '%.2f'|format(listing.price) }}</strong>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="empty-state">No listings available yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

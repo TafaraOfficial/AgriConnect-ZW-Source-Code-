@@ -14,7 +14,7 @@ y = df["price"]
 model = LinearRegression()
 model.fit(X,y)
 
-prediction = model.predict([[7]])
+prediction = model.predict(pd.DataFrame({"month": [7]}))
 
 print(
     f"Predicted July Price: {prediction[0]}"

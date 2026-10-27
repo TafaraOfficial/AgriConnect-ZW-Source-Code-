@@ -1,4 +1,4 @@
-AgriConnect ZW Group Work Allocation
+# AgriConnect ZW Group Work Allocation
 
 Team Members
 
@@ -254,13 +254,14 @@ Prepare:
 
 Extra Features To Gain More Marks
 
-1. USSD Support ⭐⭐⭐⭐⭐
+### 1. USSD Support ⭐⭐⭐⭐⭐
 
 For farmers without smartphones.
 
 Example:
 
 *123#
+
 1. Sell Produce
 2. Buy Inputs
 3. Market Prices
@@ -269,7 +270,7 @@ This is very relevant in rural Zimbabwe.
 
 ⸻
 
-2. SMS Notifications ⭐⭐⭐⭐⭐
+### 2. SMS Notifications ⭐⭐⭐⭐⭐
 
 Notify users when:
 
@@ -279,7 +280,7 @@ Notify users when:
 
 ⸻
 
-3. WhatsApp Bot ⭐⭐⭐⭐⭐
+### 3. WhatsApp Bot ⭐⭐⭐⭐⭐
 
 Users send:
 
@@ -295,7 +296,7 @@ Can use Twilio or Meta WhatsApp API.
 
 ⸻
 
-4. AI Crop Recommendation ⭐⭐⭐⭐⭐⭐
+### 4. AI Crop Recommendation ⭐⭐⭐⭐⭐⭐
 
 User enters:
 
@@ -313,7 +314,7 @@ Based on weather and historical data.
 
 ⸻
 
-5. Fraud Detection ⭐⭐⭐⭐⭐
+### 5. Fraud Detection ⭐⭐⭐⭐⭐
 
 Detect suspicious sellers.
 
@@ -324,7 +325,7 @@ Prevent:
 
 ⸻
 
-6. Weather Integration ⭐⭐⭐⭐⭐
+### 6. Weather Integration ⭐⭐⭐⭐⭐
 
 Display:
 
@@ -336,7 +337,7 @@ Helping farmers decide planting times.
 
 ⸻
 
-7. Image-Based Crop Disease Detection ⭐⭐⭐⭐⭐⭐
+### 7. Image-Based Crop Disease Detection ⭐⭐⭐⭐⭐⭐
 
 User uploads leaf image.
 
@@ -350,7 +351,7 @@ Very impressive to examiners.
 
 ⸻
 
-8. Carbon Footprint Tracker ⭐⭐⭐⭐⭐
+### 8. Carbon Footprint Tracker ⭐⭐⭐⭐⭐
 
 Shows environmental impact.
 
@@ -358,7 +359,7 @@ Aligns with UN Sustainable Development Goals.
 
 ⸻
 
-9. Blockchain Traceability ⭐⭐⭐⭐⭐⭐
+### 9. Blockchain Traceability ⭐⭐⭐⭐⭐⭐
 
 Track produce from farm to buyer.
 
@@ -366,7 +367,7 @@ Adds transparency and export quality assurance.
 
 ⸻
 
-10. Farmer Credit Score ⭐⭐⭐⭐⭐⭐
+### 10. Farmer Credit Score ⭐⭐⭐⭐⭐⭐
 
 Build trust for loans.
 
