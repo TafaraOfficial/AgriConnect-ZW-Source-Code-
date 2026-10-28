@@ -4,6 +4,7 @@ from datetime import datetime
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
+from ai.models import estimate_market_trend, get_price_forecast, predict_crop_price, recommend_crops
 from .models import get_db
 
 main = Blueprint("main", __name__)
@@ -151,6 +152,15 @@ def dashboard():
     recent_listings = db.execute(
         "SELECT l.*, u.name AS seller_name FROM listings l JOIN users u ON u.id = l.seller_id ORDER BY l.created_at DESC LIMIT 5"
     ).fetchall()
+    listings_data = [dict(item) for item in recent_listings]
+    price_forecast = get_price_forecast()
+    market_trend = estimate_market_trend(listings_data)
+    recommended_crops = recommend_crops({"rainfall": 75, "temperature": 28}, "summer", "harare")
+
+    try:
+        best_price = predict_crop_price("maize")
+    except ValueError:
+        best_price = 0
 
     return render_template(
         "dashboard.html",
@@ -158,7 +168,11 @@ def dashboard():
         total_listings=total_listings,
         my_listings=my_listings,
         pending_orders=pending_orders,
-        recent_listings=[dict(item) for item in recent_listings],
+        recent_listings=listings_data,
+        price_forecast=price_forecast,
+        market_trend=market_trend,
+        recommended_crops=recommended_crops,
+        market_price=best_price,
     )
 
 

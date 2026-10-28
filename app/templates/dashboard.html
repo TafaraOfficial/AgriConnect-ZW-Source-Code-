@@ -25,6 +25,35 @@
   </div>
 </div>
 
+<div class="ai-panels">
+  <div class="panel ai-panel">
+    <div class="section-header">
+      <h2>AI market forecast</h2>
+    </div>
+    <p class="ai-summary">{{ market_trend.summary }}</p>
+    <div class="forecast-list">
+      {% for item in price_forecast %}
+        <div class="forecast-item">
+          <span>{{ item.crop }}</span>
+          <strong>US$ {{ '%.2f'|format(item.price) }}</strong>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="panel ai-panel">
+    <div class="section-header">
+      <h2>Recommended crops</h2>
+    </div>
+    <div class="chip-row">
+      {% for crop in recommended_crops %}
+        <span class="chip">{{ crop }}</span>
+      {% endfor %}
+    </div>
+    <p class="ai-summary">Best maize forecast: US$ {{ '%.2f'|format(market_price) }}</p>
+  </div>
+</div>
+
 <div class="panel">
   <div class="section-header">
     <h2>Recent marketplace listings</h2>

@@ -158,6 +158,13 @@ a {
   margin-bottom: 2rem;
 }
 
+.ai-panels {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(240px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
 .stat-card, .card, .panel, .auth-card {
   background: var(--card);
   border: 1px solid var(--border);
@@ -182,6 +189,46 @@ a {
 
 .panel {
   padding: 1.5rem;
+}
+
+.ai-panel {
+  background: linear-gradient(135deg, #f4fbf5, #eef5ff);
+}
+
+.ai-summary {
+  color: var(--muted);
+  margin: 0.5rem 0 1rem;
+}
+
+.forecast-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.forecast-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  background: rgba(255, 255, 255, 0.35);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.65rem 0.8rem;
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.chip {
+  background: var(--primary-dark);
+  color: white;
+  border-radius: 999px;
+  padding: 0.45rem 0.8rem;
+  font-size: 0.8rem;
+  font-weight: 700;
 }
 
 .section-header {
@@ -456,6 +503,7 @@ a {
 
 @media (max-width: 760px) {
   .stats-grid,
+  .ai-panels,
   .filter-bar,
   .form-grid {
     grid-template-columns: 1fr;
