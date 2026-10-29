@@ -6,19 +6,27 @@
     <title>{% block title %}AgriConnect ZW{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
   </head>
-  <body>
+  <body class="{% if current_user and current_user.role == 'admin' %}admin-theme{% endif %}">
     <nav class="navbar">
       <div class="container nav-inner">
-        <a href="{{ url_for('main.dashboard') if current_user else url_for('main.login') }}" class="brand">AgriConnect ZW</a>
+        <a href="{{ (url_for('main.admin_console') if current_user.role == 'admin' else url_for('main.dashboard')) if current_user else url_for('main.login') }}" class="brand">AgriConnect ZW</a>
         <div class="nav-links">
           {% if current_user %}
-            <a href="{{ url_for('main.dashboard') }}">Dashboard</a>
-            <a href="{{ url_for('main.marketplace') }}">Marketplace</a>
-            <a href="{{ url_for('main.orders_page') }}">Orders</a>
-            {% if current_user.role in ['farmer', 'supplier', 'admin'] %}
-              <a href="{{ url_for('main.new_listing') }}">Add Listing</a>
+            {% if current_user.role == 'admin' %}
+              <a href="{{ url_for('main.admin_console') }}">Data console</a>
+              <a href="{{ url_for('main.marketplace') }}">Marketplace</a>
+            {% else %}
+              <a href="{{ url_for('main.dashboard') }}">Dashboard</a>
+              <a href="{{ url_for('main.marketplace') }}">Marketplace</a>
+              <a href="{{ url_for('main.orders_page') }}">Orders</a>
+              {% if current_user.role in ['farmer', 'supplier'] %}
+                <a href="{{ url_for('main.new_listing') }}">Add Listing</a>
+              {% endif %}
             {% endif %}
-            <a href="{{ url_for('main.logout') }}" class="nav-button">Logout</a>
+            <form method="POST" action="{{ url_for('main.logout') }}" class="logout-form">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <button type="submit" class="nav-button">Logout</button>
+            </form>
           {% else %}
             <a href="{{ url_for('main.login') }}">Login</a>
             <a href="{{ url_for('main.register') }}">Register</a>

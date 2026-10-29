@@ -1,13 +1,24 @@
-import re
-from datetime import datetime
+﻿import re
+import time
 
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from ai.models import estimate_market_trend, get_price_forecast, predict_crop_price, recommend_crops
+from ai.models import (
+    PRICE_CROPS,
+    estimate_market_trend,
+    forecast_market_demand,
+    get_price_forecast,
+    load_price_history,
+    recommend_crops,
+    save_price_history,
+)
 from .models import get_db
 
 main = Blueprint("main", __name__)
+LOGIN_MAX_ATTEMPTS = 3
+LOGIN_LOCKOUT_SECONDS = 15 * 60
+_DUMMY_PASSWORD_HASH = generate_password_hash("unusable-password-for-timing-equalization")
 
 
 def current_user():
@@ -77,7 +88,7 @@ def register():
             flash("Password must be at least 8 characters long.", "danger")
             return render_template("register.html")
 
-        if role not in {"buyer", "farmer", "supplier", "admin"}:
+        if role not in {"buyer", "farmer", "supplier"}:
             flash("Invalid role selected.", "danger")
             return render_template("register.html")
 
@@ -109,20 +120,59 @@ def login():
             return render_template("login.html")
 
         db = get_db()
+        now = int(time.time())
+        attempt = db.execute(
+            "SELECT attempts, locked_until FROM login_attempts WHERE email = ?",
+            (email,),
+        ).fetchone()
+        if attempt and attempt["locked_until"] and attempt["locked_until"] > now:
+            flash("Too many failed sign-in attempts. Try again in 15 minutes.", "danger")
+            return render_template("login.html"), 429
+
+        if attempt and attempt["locked_until"] and attempt["locked_until"] <= now:
+            db.execute("DELETE FROM login_attempts WHERE email = ?", (email,))
+            db.commit()
+            attempt = None
+
         user = db.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
-        if user and check_password_hash(user["password_hash"], password):
+        password_hash = user["password_hash"] if user else _DUMMY_PASSWORD_HASH
+        password_matches = check_password_hash(password_hash, password)
+        if user and password_matches:
+            db.execute("DELETE FROM login_attempts WHERE email = ?", (email,))
+            db.commit()
             session.clear()
             session["user_id"] = user["id"]
             session["role"] = user["role"]
             flash("Welcome back!", "success")
             return redirect(url_for("main.dashboard"))
 
+        failed_attempts = (attempt["attempts"] if attempt else 0) + 1
+        locked_until = (
+            now + LOGIN_LOCKOUT_SECONDS
+            if failed_attempts >= LOGIN_MAX_ATTEMPTS
+            else None
+        )
+        db.execute(
+            """
+            INSERT INTO login_attempts (email, attempts, locked_until)
+            VALUES (?, ?, ?)
+            ON CONFLICT(email) DO UPDATE SET
+                attempts = excluded.attempts,
+                locked_until = excluded.locked_until
+            """,
+            (email, failed_attempts, locked_until),
+        )
+        db.commit()
+        if locked_until:
+            flash("Too many failed sign-in attempts. Try again in 15 minutes.", "danger")
+            return render_template("login.html"), 429
+
         flash("Invalid email or password.", "danger")
 
     return render_template("login.html")
 
 
-@main.route("/logout")
+@main.route("/logout", methods=["POST"])
 def logout():
     session.clear()
     flash("You have been logged out.", "info")
@@ -133,9 +183,11 @@ def logout():
 @login_required
 def dashboard():
     user = current_user()
+    if user["role"] == "admin":
+        return redirect(url_for("main.admin_console"))
     db = get_db()
 
-    if user["role"] in {"farmer", "supplier", "admin"}:
+    if user["role"] in {"farmer", "supplier"}:
         my_listings = db.execute(
             "SELECT COUNT(*) AS total FROM listings WHERE seller_id = ?",
             (user["id"],),
@@ -147,20 +199,33 @@ def dashboard():
     pending_orders = db.execute(
         "SELECT COUNT(*) AS total FROM orders o JOIN listings l ON l.id = o.listing_id WHERE l.seller_id = ? AND o.status = 'pending'",
         (user["id"],),
-    ).fetchone()["total"] if user["role"] in {"farmer", "supplier", "admin"} else 0
+    ).fetchone()["total"] if user["role"] in {"farmer", "supplier"} else 0
 
     recent_listings = db.execute(
-        "SELECT l.*, u.name AS seller_name FROM listings l JOIN users u ON u.id = l.seller_id ORDER BY l.created_at DESC LIMIT 5"
+        "SELECT l.*, u.name AS seller_name FROM listings l JOIN users u ON u.id = l.seller_id WHERE l.status = 'active' ORDER BY l.created_at DESC LIMIT 5"
     ).fetchall()
-    listings_data = [dict(item) for item in recent_listings]
-    price_forecast = get_price_forecast()
-    market_trend = estimate_market_trend(listings_data)
-    recommended_crops = recommend_crops({"rainfall": 75, "temperature": 28}, "summer", "harare")
+    produce_listings = db.execute(
+        "SELECT crop, category FROM listings WHERE status = 'active'"
+    ).fetchall()
 
+    season = request.args.get("season", "summer").strip().lower()
+    province = request.args.get("province", "Harare").strip()
     try:
-        best_price = predict_crop_price("maize")
-    except ValueError:
-        best_price = 0
+        rainfall = float(request.args.get("rainfall", "600"))
+        temperature = float(request.args.get("temperature", "25"))
+        recommended_crops = recommend_crops(
+            {"rainfall": rainfall, "temperature": temperature}, season, province
+        )
+    except (ValueError, AttributeError):
+        flash("Invalid crop recommendation inputs; showing standard demo conditions.", "warning")
+        rainfall, temperature, season, province = 600, 25, "summer", "Harare"
+        recommended_crops = recommend_crops(
+            {"rainfall": rainfall, "temperature": temperature}, season, province
+        )
+
+    price_forecast = get_price_forecast()
+    market_trend = estimate_market_trend([dict(row) for row in produce_listings])
+    demand_forecast = forecast_market_demand(db, season)
 
     return render_template(
         "dashboard.html",
@@ -168,13 +233,87 @@ def dashboard():
         total_listings=total_listings,
         my_listings=my_listings,
         pending_orders=pending_orders,
-        recent_listings=listings_data,
+        recent_listings=[dict(item) for item in recent_listings],
         price_forecast=price_forecast,
+        forecast_month=price_forecast[0]["month"],
         market_trend=market_trend,
+        demand_forecast=demand_forecast,
         recommended_crops=recommended_crops,
-        market_price=best_price,
+        rainfall=rainfall,
+        temperature=temperature,
+        season=season,
+        province=province,
     )
 
+
+@main.route("/admin", methods=["GET", "POST"])
+@login_required
+@role_required("admin")
+def admin_console():
+    if request.method == "POST":
+        records = [
+            {
+                "month": month,
+                **{
+                    crop: request.form.get(f"price_{month}_{crop}", "")
+                    for crop in PRICE_CROPS
+                },
+            }
+            for month in range(1, 13)
+        ]
+        try:
+            save_price_history(records)
+        except ValueError as exc:
+            flash(str(exc), "danger")
+        else:
+            flash("Training dataset saved and seasonal price models retrained.", "success")
+        return redirect(url_for("main.admin_console"))
+
+    db = get_db()
+    listings = db.execute(
+        """
+        SELECT l.id, l.title, l.crop, l.category, l.price, l.quantity, l.unit,
+               l.location, l.status, u.name AS seller_name
+        FROM listings l
+        JOIN users u ON u.id = l.seller_id
+        ORDER BY l.created_at DESC
+        LIMIT 100
+        """
+    ).fetchall()
+    summary = {
+        "users": db.execute("SELECT COUNT(*) FROM users").fetchone()[0],
+        "listings": db.execute("SELECT COUNT(*) FROM listings").fetchone()[0],
+        "orders": db.execute("SELECT COUNT(*) FROM orders").fetchone()[0],
+    }
+    return render_template(
+        "admin.html",
+        training_rows=load_price_history(),
+        training_crops=PRICE_CROPS,
+        listings=listings,
+        summary=summary,
+    )
+
+
+@main.route("/ai/recommend", methods=["POST"])
+@login_required
+def ai_recommend():
+    province = (request.form.get("province") or "Harare").strip()
+    season = (request.form.get("season") or "summer").strip().lower()
+    try:
+        rainfall = float(request.form.get("rainfall") or "600")
+        temperature = float(request.form.get("temperature") or "25")
+        recommend_crops({"rainfall": rainfall, "temperature": temperature}, season, province)
+    except (ValueError, TypeError) as exc:
+        flash(str(exc), "danger")
+        return redirect(url_for("main.dashboard"))
+
+    return redirect(url_for(
+        "main.dashboard",
+        rainfall=rainfall,
+        temperature=temperature,
+        season=season,
+        province=province,
+    ))
 
 @main.route("/marketplace")
 def marketplace():
@@ -374,7 +513,8 @@ def orders_page():
     if user["role"] in {"farmer", "supplier", "admin"}:
         rows = db.execute(
             """
-            SELECT o.*, l.title, l.price, u.name AS buyer_name
+            SELECT o.*, l.title, l.price, u.name AS contact_name,
+                   u.email AS contact_email, u.phone AS contact_phone
             FROM orders o
             JOIN listings l ON l.id = o.listing_id
             JOIN users u ON u.id = o.buyer_id
@@ -384,10 +524,12 @@ def orders_page():
             (user["id"],),
         ).fetchall()
         order_type = "incoming"
+        contact_label = "buyer"
     else:
         rows = db.execute(
             """
-            SELECT o.*, l.title, l.price, u.name AS seller_name
+            SELECT o.*, l.title, l.price, u.name AS contact_name,
+                   u.email AS contact_email, u.phone AS contact_phone
             FROM orders o
             JOIN listings l ON l.id = o.listing_id
             JOIN users u ON u.id = l.seller_id
@@ -397,10 +539,28 @@ def orders_page():
             (user["id"],),
         ).fetchall()
         order_type = "outgoing"
+        contact_label = "seller"
 
     orders = [dict(row) for row in rows]
-    return render_template("orders.html", orders=orders, order_type=order_type)
+    for order in orders:
+        contact_email = order.get("contact_email") or ""
+        contact_phone = order.get("contact_phone") or ""
+        order["contact_email_link"] = (
+            contact_email
+            if re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", contact_email)
+            else None
+        )
+        phone_digits = re.sub(r"\D", "", contact_phone)
+        order["contact_phone_link"] = (
+            f"+{phone_digits}" if contact_phone.strip().startswith("+") else phone_digits
+        ) or None
 
+    return render_template(
+        "orders.html",
+        orders=orders,
+        order_type=order_type,
+        contact_label=contact_label,
+    )
 
 @main.route("/orders/<int:order_id>/status", methods=["POST"])
 @login_required

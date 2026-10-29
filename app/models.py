@@ -30,6 +30,70 @@ def close_db(_error):
         db.close()
 
 
+def _seed_demo_market(conn):
+    from ai.demo_products import iter_demo_products
+
+    seller_specs = (
+        ("demo-farmer-1@agriconnect.co.zw", "Mbare Growers Cooperative", "farmer"),
+        ("demo-farmer-2@agriconnect.co.zw", "Highveld Family Farm", "farmer"),
+        ("demo-supplier@agriconnect.co.zw", "GreenFields Inputs", "supplier"),
+    )
+    seller_ids = []
+    for email, name, role in seller_specs:
+        row = conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+        if row is None:
+            conn.execute(
+                "INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)",
+                (name, email, generate_password_hash(os.urandom(32).hex()), role),
+            )
+            row = conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+        seller_ids.append(row[0])
+
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS demo_listing_seed (
+            seed_key TEXT PRIMARY KEY,
+            listing_id INTEGER NOT NULL UNIQUE,
+            FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE
+        )
+        """
+    )
+
+    for product in iter_demo_products():
+        existing = conn.execute(
+            "SELECT listing_id FROM demo_listing_seed WHERE seed_key = ?", (product["key"],)
+        ).fetchone()
+        if existing:
+            conn.execute(
+                "UPDATE listings SET seller_id = ? WHERE id = ?",
+                (seller_ids[product["seller_index"]], existing[0]),
+            )
+            continue
+        cursor = conn.execute(
+            """
+            INSERT INTO listings (
+                seller_id, title, crop, category, description, quantity,
+                unit, price, location, status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
+            """,
+            (
+                seller_ids[product["seller_index"]],
+                product["title"],
+                product["crop"],
+                product["category"],
+                product["description"],
+                product["quantity"],
+                product["unit"],
+                product["price"],
+                product["location"],
+            ),
+        )
+        conn.execute(
+            "INSERT INTO demo_listing_seed (seed_key, listing_id) VALUES (?, ?)",
+            (product["key"], cursor.lastrowid),
+        )
+
+
 def init_db():
     db_path = Path(get_database_path())
     db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -74,24 +138,22 @@ def init_db():
             FOREIGN KEY (buyer_id) REFERENCES users(id) ON DELETE CASCADE,
             FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE
         );
+
+        CREATE TABLE IF NOT EXISTS login_attempts (
+            email TEXT PRIMARY KEY,
+            attempts INTEGER NOT NULL DEFAULT 0,
+            locked_until INTEGER
+        );
         """
     )
 
     admin_email = "admin@agriconnect.co.zw"
-    if not conn.execute(
-        "SELECT 1 FROM users WHERE email = ?",
-        (admin_email,),
-    ).fetchone():
+    if not conn.execute("SELECT 1 FROM users WHERE email = ?", (admin_email,)).fetchone():
         conn.execute(
             "INSERT INTO users (name, email, password_hash, role, phone) VALUES (?, ?, ?, ?, ?)",
-            (
-                "Admin User",
-                admin_email,
-                generate_password_hash("admin123"),
-                "admin",
-                "+263000000000",
-            ),
+            ("Admin User", admin_email, generate_password_hash("admin123"), "admin", "+263000000000"),
         )
 
+    _seed_demo_market(conn)
     conn.commit()
     conn.close()

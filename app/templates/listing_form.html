@@ -8,6 +8,7 @@
   </div>
 
   <form method="POST" class="form-grid">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
     <div class="field-group">
       <label for="title">Title</label>
       <input id="title" name="title" type="text" value="{{ listing.title if listing else '' }}" required />

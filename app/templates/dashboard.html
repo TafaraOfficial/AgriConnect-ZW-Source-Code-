@@ -25,34 +25,100 @@
   </div>
 </div>
 
-<div class="ai-panels">
-  <div class="panel ai-panel">
-    <div class="section-header">
-      <h2>AI market forecast</h2>
+<section class="ai-section">
+  <div class="ai-section-heading">
+    <div>
+      <p class="eyebrow">Decision support</p>
+      <h2>AI and market insights</h2>
     </div>
-    <p class="ai-summary">{{ market_trend.summary }}</p>
-    <div class="forecast-list">
-      {% for item in price_forecast %}
-        <div class="forecast-item">
-          <span>{{ item.crop }}</span>
-          <strong>US$ {{ '%.2f'|format(item.price) }}</strong>
-        </div>
-      {% endfor %}
-    </div>
+    <span class="badge">Prototype estimates</span>
   </div>
 
-  <div class="panel ai-panel">
-    <div class="section-header">
-      <h2>Recommended crops</h2>
+  <div class="ai-panels">
+    <div class="panel ai-panel">
+      <div class="section-header">
+        <h3>Seasonal price forecast</h3>
+        <span class="small-muted">Month {{ forecast_month }} · USD/kg</span>
+      </div>
+      <div class="forecast-list">
+        {% for item in price_forecast %}
+          <div class="forecast-item">
+            <span>{{ item.crop }}</span>
+            <strong>US$ {{ '%.2f'|format(item.price) }}</strong>
+          </div>
+        {% endfor %}
+      </div>
+      <p class="model-note">Illustrative seasonal regression using the bundled sample history; not a live Zimbabwe market quote.</p>
     </div>
-    <div class="chip-row">
-      {% for crop in recommended_crops %}
-        <span class="chip">{{ crop }}</span>
-      {% endfor %}
+
+    <div class="panel ai-panel">
+      <div class="section-header">
+        <h3>Market demand outlook</h3>
+        <span class="small-muted">{{ season|title }} season</span>
+      </div>
+      {% if demand_forecast %}
+        <div class="forecast-list">
+          {% for item in demand_forecast %}
+            <div class="forecast-item demand-item">
+              <span>{{ item.crop }} <small>{{ item.confidence }} confidence</small></span>
+              <strong>{{ '%.1f'|format(item.score) }}/100</strong>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="empty-state">No active produce listings are available for demand scoring.</p>
+      {% endif %}
+      <p class="model-note">{{ market_trend.summary }} Signals use local listing and order activity; baseline-only results are marked low confidence.</p>
     </div>
-    <p class="ai-summary">Best maize forecast: US$ {{ '%.2f'|format(market_price) }}</p>
+
+    <div class="panel ai-panel recommendation-panel">
+      <div class="section-header">
+        <h3>Crop suitability</h3>
+        <span class="small-muted">Based on your conditions</span>
+      </div>
+      <form method="POST" action="{{ url_for('main.ai_recommend') }}" class="recommendation-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        <div class="field-group">
+          <label for="province">Province</label>
+          <select id="province" name="province">
+            {% for option in ['Harare', 'Bulawayo', 'Manicaland', 'Mashonaland Central', 'Mashonaland East', 'Mashonaland West', 'Masvingo', 'Midlands', 'Matabeleland North', 'Matabeleland South'] %}
+              <option value="{{ option }}" {% if province|lower == option|lower %}selected{% endif %}>{{ option }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="recommendation-inputs">
+          <div class="field-group">
+            <label for="rainfall">Seasonal rainfall (mm)</label>
+            <input id="rainfall" name="rainfall" type="number" min="0" max="2000" step="1" value="{{ rainfall }}" required />
+          </div>
+          <div class="field-group">
+            <label for="temperature">Average temperature (°C)</label>
+            <input id="temperature" name="temperature" type="number" min="-10" max="60" step="0.5" value="{{ temperature }}" required />
+          </div>
+        </div>
+        <div class="field-group">
+          <label for="season">Season</label>
+          <select id="season" name="season">
+            {% for option in ['summer', 'winter', 'spring', 'autumn'] %}
+              <option value="{{ option }}" {% if season == option %}selected{% endif %}>{{ option|title }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="primary-button">Get recommendations</button>
+      </form>
+      <div class="crop-scores">
+        {% for item in recommended_crops %}
+          <div class="crop-score">
+            <span class="chip">{{ item.crop }}</span>
+            <span class="score-track"><span style="width: {{ item.score }}%"></span></span>
+            <strong>{{ item.score }}/100</strong>
+          </div>
+        {% endfor %}
+      </div>
+      <p class="model-note">Suitability is a prototype decision-support score, not agronomic advice. Confirm choices with local extension services.</p>
+    </div>
   </div>
-</div>
+</section>
 
 <div class="panel">
   <div class="section-header">

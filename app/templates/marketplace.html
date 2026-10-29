@@ -57,6 +57,7 @@
 
         {% if current_user and current_user.id != listing.seller_id %}
           <form method="POST" action="{{ url_for('main.place_order', listing_id=listing.id) }}" class="order-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
             <div class="inline-fields">
               <input type="number" name="quantity" min="1" max="{{ listing.quantity }}" value="1" required />
               <button type="submit" class="primary-button">Request order</button>
@@ -71,6 +72,7 @@
           <div class="owner-actions">
             <a href="{{ url_for('main.edit_listing', listing_id=listing.id) }}" class="secondary-button small-button">Edit</a>
             <form method="POST" action="{{ url_for('main.delete_listing', listing_id=listing.id) }}" onsubmit="return confirm('Delete this listing?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
               <button type="submit" class="danger-button small-button">Delete</button>
             </form>
           </div>

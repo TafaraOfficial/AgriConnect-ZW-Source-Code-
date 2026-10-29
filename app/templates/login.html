@@ -7,6 +7,7 @@
   <p class="subtitle">Sign in to access the marketplace and manage your listings.</p>
 
   <form method="POST" class="form-panel">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
     <div class="field-group">
       <label for="email">Email</label>
       <input id="email" name="email" type="email" placeholder="you@example.com" required />

@@ -7,6 +7,7 @@
   <p class="subtitle">Join AgriConnect ZW as a buyer, farmer, or supplier.</p>
 
   <form method="POST" class="form-panel">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
     <div class="field-group">
       <label for="name">Full name</label>
       <input id="name" name="name" type="text" placeholder="Your full name" required />

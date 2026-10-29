@@ -1,21 +1,28 @@
-import pandas as pd
-from sklearn.linear_model import LinearRegression
+"""Command-line price forecast using the same model as the Flask dashboard."""
 
-data = {
-    "month":[1,2,3,4,5,6],
-    "price":[10,12,13,15,17,18]
-}
+import argparse
+import sys
+from datetime import date
+from pathlib import Path
 
-df = pd.DataFrame(data)
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-X = df[["month"]]
-y = df["price"]
+from ai.models import get_price_forecast, predict_crop_price
 
-model = LinearRegression()
-model.fit(X,y)
 
-prediction = model.predict(pd.DataFrame({"month": [7]}))
+def main():
+    parser = argparse.ArgumentParser(description="Forecast illustrative Zimbabwe crop prices.")
+    parser.add_argument("--month", type=int, default=date.today().month % 12 + 1, help="Forecast month (1-12)")
+    parser.add_argument("--crop", choices=("tomatoes", "maize", "potatoes", "beans", "groundnuts", "onions", "cabbage"))
+    args = parser.parse_args()
+    if args.crop:
+        print(f"{args.crop.title()} forecast for month {args.month}: US$ {predict_crop_price(args.crop, args.month):.2f}/kg")
+        return
+    for item in get_price_forecast(args.month):
+        print(f"{item['crop']:<12} US$ {item['price']:.2f}/{item['unit']} (month {item['month']})")
+    print("Note: forecasts use the bundled illustrative price dataset, not live Zimbabwe market quotes.")
 
-print(
-    f"Predicted July Price: {prediction[0]}"
-)
+
+if __name__ == "__main__":
+    main()

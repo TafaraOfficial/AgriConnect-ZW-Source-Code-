@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% block title %}Data Console | AgriConnect ZW{% endblock %}
+
+{% block content %}
+<section class="page-header admin-header">
+  <div>
+    <p class="eyebrow">Administration / Data operations</p>
+    <h1>Data console</h1>
+    <p class="admin-lede">Maintain marketplace records and the seasonal price dataset used to retrain the forecast model.</p>
+  </div>
+  <span class="badge role-badge">Admin workspace</span>
+</section>
+
+<section class="stats-grid admin-stats" aria-label="Database totals">
+  <div class="stat-card"><span class="stat-label">Registered users</span><strong>{{ summary.users }}</strong></div>
+  <div class="stat-card"><span class="stat-label">Marketplace listings</span><strong>{{ summary.listings }}</strong></div>
+  <div class="stat-card"><span class="stat-label">Order records</span><strong>{{ summary.orders }}</strong></div>
+</section>
+
+<section class="panel admin-panel" id="training-data">
+  <div class="section-header admin-section-header">
+    <div>
+      <p class="eyebrow">Model training data</p>
+      <h2>Seasonal price observations</h2>
+    </div>
+    <span class="admin-meta">12 months · USD per kg</span>
+  </div>
+  <p class="admin-help">Edit the monthly observations below and save to replace the training CSV and retrain the seasonal regression models. Use measured, consistently sourced prices where available; the bundled values are illustrative.</p>
+  <form method="POST" class="dataset-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    <div class="admin-table-wrap">
+      <table class="admin-table dataset-table">
+        <thead>
+          <tr>
+            <th scope="col">Month</th>
+            {% for crop in training_crops %}
+              <th scope="col">{{ crop|title }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in training_rows %}
+            <tr>
+              <th scope="row">{{ row.month }}</th>
+              {% for crop in training_crops %}
+                <td>
+                  <label class="sr-only" for="price-{{ row.month }}-{{ crop }}">Month {{ row.month }} {{ crop }} price</label>
+                  <input id="price-{{ row.month }}-{{ crop }}" name="price_{{ row.month }}_{{ crop }}" type="number" min="0.0001" step="0.01" value="{{ '%.2f'|format(row[crop]) }}" required />
+                </td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="form-actions admin-form-actions">
+      <button type="submit" class="primary-button">Save dataset and retrain</button>
+      <span class="admin-meta">All 12 months and 7 crop columns are required.</span>
+    </div>
+  </form>
+</section>
+
+<section class="panel admin-panel" id="market-data">
+  <div class="section-header admin-section-header">
+    <div>
+      <p class="eyebrow">Marketplace data</p>
+      <h2>Listing records</h2>
+    </div>
+    <span class="admin-meta">Most recent 100</span>
+  </div>
+  <div class="admin-table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th scope="col">Listing</th>
+          <th scope="col">Seller</th>
+          <th scope="col">Stock</th>
+          <th scope="col">Price</th>
+          <th scope="col">Status</th>
+          <th scope="col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for listing in listings %}
+          <tr>
+            <td><strong>{{ listing.title }}</strong><small>{{ listing.crop }} · {{ listing.location }}</small></td>
+            <td>{{ listing.seller_name }}</td>
+            <td>{{ listing.quantity }} {{ listing.unit }}</td>
+            <td>US$ {{ '%.2f'|format(listing.price) }}</td>
+            <td><span class="admin-status">{{ listing.status|title }}</span></td>
+            <td>
+              <div class="admin-actions">
+                <a class="secondary-button small-button" href="{{ url_for('main.edit_listing', listing_id=listing.id) }}">Edit</a>
+                <form method="POST" action="{{ url_for('main.delete_listing', listing_id=listing.id) }}" onsubmit="return confirm('Delete this listing and its related order records?');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                  <button class="danger-button small-button" type="submit">Delete</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" class="empty-state">No listing records found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

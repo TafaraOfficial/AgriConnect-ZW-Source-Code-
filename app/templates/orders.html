@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+﻿{% extends 'base.html' %}
 {% block title %}Orders | AgriConnect ZW{% endblock %}
 
 {% block content %}
@@ -17,10 +17,28 @@
           <div class="order-head">
             <div>
               <h3>{{ order.title }}</h3>
-              <p>Quantity: {{ order.quantity }} • Price: US$ {{ '%.2f'|format(order.price) }}</p>
+              <p>Quantity: {{ order.quantity }} - Price: US$ {{ '%.2f'|format(order.price) }}</p>
             </div>
             <span class="status-badge status-{{ order.status }}">{{ order.status|title }}</span>
           </div>
+
+          <details class="order-contact">
+            <summary class="contact-button">Contact {{ contact_label }}</summary>
+            <div class="contact-details">
+              <strong>{{ order.contact_name }}</strong>
+              {% if order.contact_email_link %}
+                <a href="mailto:{{ order.contact_email_link|urlencode }}">Email {{ contact_label }}</a>
+              {% else %}
+                <span class="contact-unavailable">No valid email on file</span>
+              {% endif %}
+              {% if order.contact_phone_link %}
+                <a href="tel:{{ order.contact_phone_link }}">Call {{ order.contact_name }}</a>
+                <span class="contact-phone">{{ order.contact_phone }}</span>
+              {% else %}
+                <span class="contact-unavailable">No phone number on file</span>
+              {% endif %}
+            </div>
+          </details>
 
           {% if order.note %}
             <p class="order-note">Note: {{ order.note }}</p>
@@ -28,6 +46,7 @@
 
           {% if order_type == 'incoming' %}
             <form method="POST" action="{{ url_for('main.update_order_status', order_id=order.id) }}" class="inline-owner-actions">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
               <select name="status">
                 <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>Pending</option>
                 <option value="accepted" {% if order.status == 'accepted' %}selected{% endif %}>Accept</option>
